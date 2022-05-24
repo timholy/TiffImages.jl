@@ -32,6 +32,7 @@ include(joinpath("types", "dense.jl"))
 include(joinpath("types", "lazy.jl"))
 include(joinpath("types", "mmapped.jl"))
 include("load.jl")
+include("mmap.jl")
 
 export memmap
 
