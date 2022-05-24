@@ -192,17 +192,16 @@ getstream(fmt, io::IOStream) = getstream(fmt, io, extract_filename(io))
 getstream(io) = getstream(format"TIFF", io)
 
 @static if Sys.iswindows()
+    # Be permissive on windows with eager GC to work around
+    # https://github.com/tlnagy/TiffImages.jl/pull/79#discussion_r880478304
     function _safe_open(f, filepath::String, mode="r", args...; kwargs...)
         io = try
             open(filepath, mode, args...; kwargs...)
         catch err
             # On Windows, trying to delete a file before garbage-collecting
             # its corresponding mmapped-array results in an error.
-            # Here, this manifests as an error in precompiling the package,
-            # which is quite a serious problem.
-            # Thus try hard to make sure we free all the temporaries.
             if err isa SystemError
-                @warn "failed to open file $filepath in \"$mode\" mode, retry after GC.gc()"
+                @warn "failed to open file $filepath in \"$mode\" mode, this may be caused by overwriting a file previously opened with mmap, retry after GC.gc()"
                 GC.gc()
                 open(filepath, mode, args...; kwargs...)
             else
