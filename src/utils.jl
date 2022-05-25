@@ -195,23 +195,14 @@ getstream(io) = getstream(format"TIFF", io)
     # Be permissive on windows with eager GC to work around
     # https://github.com/tlnagy/TiffImages.jl/pull/79#discussion_r880478304
     function _safe_open(f, filepath::String, mode="r", args...; kwargs...)
-        io = try
-            open(filepath, mode, args...; kwargs...)
-        catch err
-            # On Windows, trying to delete a file before garbage-collecting
-            # its corresponding mmapped-array results in an error.
-            if err isa SystemError
-                @warn "failed to open file $filepath in \"$mode\" mode, this may be caused by overwriting a file previously opened with mmap, retry after GC.gc()"
-                GC.gc()
-                open(filepath, mode, args...; kwargs...)
-            else
-                rethrow()
-            end
-        end
+        GC.gc()
         try
-            f(io)
-        finally
-            close(io)
+            open(f, filepath, mode, args...; kwargs...)
+        catch err
+            if err isa SystemError
+                @warn "failed to open file \"$filepath\" in \"$mode\" mode, this may be caused by overwriting a file previously opened with mmap"
+            end
+            rethrow()
         end
     end
 else
